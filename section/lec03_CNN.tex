@@ -1,0 +1,51 @@
+\section{CNN}
+
+\textbf{Neural Findings}
+(1) Rapid serial visual presentation(RSVP), (2) Hubel \& Wiesel, receptive fields (3) HMAX Model, simple/complex cell.
+
+\textbf{Pre-DL Model}: Neurocognitron, LeNet-5, \textbf{Dataset}: ImageNet.
+
+\textbf{3 Properties}:\\
+(1) \textbf{Linear} \(T(\alpha {u}+\beta {v})=\alpha T({u})+\beta T({v})\).\\ (2) \textbf{invariance} to \(f\), \(T(f({u}))=T({u})\).\\ (3) \textbf{equivariant} to \(f\), \(T(f({u}))=f(T({u}))\).
+
+\subsection*{Convolution}
+\textsf{F}:\( z_{ij}^{(l)}=w^{(l)} * z^{(l-1)}+b= \sum_{mn} w_{mn}^{(l)} z_{i-m, j-n}^{(l-1)}+b\). \\
+\textsf{B} on \(z\):\(\delta_{i,j}^{(l-1)} := \pdv{C}{z^{(l-1)}_{i,j}} = \sum_{i'j'} \pdv{C}{z^{(l)}_{i,j}} \pdv{z^{(l)}_{ij}}{z^{(l-1)}_{ij}} =  \sum_{i'j'} \delta_{ij}^{(l)} w_{i'-l,j'-j}^{(l)} = \delta^{(l)} * \text{ROT}_{180^{\circ}}(w^{(l)})\).\\
+\textsf{B} on \(w\):\(\pdv{C}{w^{(l)}_{m,n}} =  \sum_{i',j'} \pdv{C}{z^{(l)}_{i,j}} \pdv{z^{(l)}_{i,j}}{w^{(l)}_{m,n}} =  \delta^{(l)} * \text{ROT}_{180^{\circ}}(z^{(l-1)})\)
+
+\( L_{\text{out}}=\left\lfloor \frac{  L_{\text{in}} + 2\text{Pad}_{=0} - \text {Dilat}_{=1}(\text{Ker} - 1)-1 }{\text {Stride}_{=1}} + 1 \right\rfloor \) for \verb|Conv| and \verb|Pool|.
+
+\(n_{\text{connect}}\) of each neuron \(3k^2\).\\
+\(n_{\text{para}} = ( k^2 \text{dim}_{\text{in}} + 1)\text{dim}_{\text{out}}\)
+
+Correlation \(\Leftrightarrow\) \verb|Conv| only \(C_{m,n} = K_{-m,-n}\).
+
+\verb|Conv| can be seen as Matmul, \(I * K = \mathsf{K I}\),
+% \begin{footnotesize}
+%     \begin{equation*}
+%         I * K = \left(\begin{array}{ccc}
+%             k_{1} & 0             & 0      \\
+%             k_{2} & k_{1}         & \vdots \\
+%             0     & k_{2}         & \vdots \\
+%             0     & \vdots \cdots & k_{m}
+%         \end{array}\right) \left(\begin{array}{c}
+%             I_{1}  \\
+%             \vdots \\
+%             I_{n}
+%         \end{array}\right)
+%     \end{equation*}
+% \end{footnotesize}
+
+Differentiation by \verb|Conv|, \(\text{Ker} = (1, -1)\).
+
+Weight sharing btw pixels.
+
+\subsection*{Pooling}
+\textbf{Goal} (1) increase receptive field. (2) noise robustness. \\
+\textbf{Max-Pool} \textsf{F}: \(z^{(l)}=\max \{z_{i}^{(l-1)}\}\), \textsf{B}: \(\delta^{(l-1)}=\{\delta^{(l)}\}_{i^{*}=\operatorname{argmax}_{i}\{z_{i}^{(l-1)}\}}\).
+
+\subsection*{Application}
+\textbf{Alexnet} Smaller filter, more layers. \\
+\textbf{GoogLeNet} Deeper, Inception module, 1x1 conv for dim/channel reduction\(64\to 32\), Auxiliary \verb|cls| head \(\Rightarrow\) More efficient. \\
+\textbf{ResNet} Adv for residual connection: (1) better convergence. (2) propagate high frequency information (U-net).
+

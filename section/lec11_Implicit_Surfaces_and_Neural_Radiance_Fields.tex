@@ -1,0 +1,60 @@
+\section{Implicit Surfaces and Neural Radiance Fields}
+3D representations: Voxels (Discretization of 3D space into grid), Points cloud, meshes (vertices and faces).
+
+\subsection*{Implicit shape representation}
+Represent surface as the zero level-set of a continuous function \(S = \{x: f(x) = 0\}\).
+
+\subsection*{Neural IR (NIR)}
+
+\textbf{Occupancy Networks} \(f_{\theta}: \mathbb{R}^{3} \times \mathcal{X} \rightarrow[0,1]\), 3D location and  condition as input, output probability
+
+\textbf{signed distance field: DeepSDF} \(f_{\theta}: \mathbb{R}^{3} \times \mathcal{X} \rightarrow \mathbb{R}\), output shape represented by \(f\theta(p) = \tau\).
+
+\textsf{Supervise NIR from Other representation}:
+
+(1) \textbf{Watertight meshes} Query GT occupancy or SDF from GT meshes, Train with cross-entropy loss.
+
+(2) \textbf{Points cloud: Implicit Geometric Regularization (IGR)} unordered and hard, \(\chi=\left\{x_{i}\right\}_{i \in I} \subset \mathbb{R}^{3}\)), learn \(f_{\theta}(x)\) is approximately the signed distance function to a plausible surface \(M\) defined by \(\chi\).
+% 
+Continuous Shortest Path (Eikonal PDE), \(\|\nabla f(x)\|= v^{-1}(x)\) for \(x \in \Omega_{0} \subset \mathbb{R}^{n}\), \(f(x)=q(x) \text { for } x \in \Omega_{T}\). When \(v(x) = 1\), learned function \(f\) is approximately the distance to the suface.
+% 
+Loss: \(\mathcal{L}(\theta)=\sum_{i \in I}\left|f_{\theta}\left(x_{i}\right)\right|^{2}+\lambda \mathbb{E}_{x}\left(\left\|\nabla_{x} f_{\theta}(x)\right\|-1\right)^{2}\).
+% 
+Many solutions, local minima. SGD for NN is used as implicit regularization.
+
+(3) \textbf{Images: Differentiable Volumetric Rendering (DVR)}
+% 
+NN output texture/color \(t_\theta(p)\) and occupancy \(f_\theta(p) \in [0, 1]\).
+% 
+\textbf{Forward}
+1. given observation position \(\mathbf{r}_0\) and relative pixel \(\to\) direction of the ray \(\mathbf{w}\),
+2. find the solution \(d\) for surface, \(f_\theta (\mathbf{p} = \mathbf{r}_0 + d \mathbf{w}) = \tau\),
+3. use \(t_\theta(\mathbf{p} = \mathbf{r}_0 + d \mathbf{w})\) for texture and color. Secant method for linesearch of zero point \(x_{2}=x_{1}-f\left(x_{1}\right) \frac{x_{1}-x_{0}}{f\left(x_{1}\right)-f\left(x_{0}\right)}\)
+
+\textbf{Backward}
+1. Loss: differnce w.r.t images, \(\mathcal{L}(\hat{\mathbf{I}}, \mathbf{I})=\sum_{\mathbf{u}}\left\|\hat{\mathbf{I}}_{\mathbf{u}}-\mathbf{I}_{\mathbf{u}}\right\|\),
+% 
+\(\frac{\partial \mathcal{L}}{\partial \theta}=\sum_{\mathbf{u}} \frac{\partial \mathcal{L}}{\partial \hat{\mathbf{I}}_{\mathbf{u}}} \cdot \frac{\partial \hat{\mathbf{I}}_{\mathbf{u}}}{\partial \theta},
+% 
+\frac{\partial \hat{\mathbf{I}}_{\mathbf{u}}}{\partial \theta}=\frac{\partial \mathrm{t}_{\theta}(\widehat{\mathbf{p}})}{\partial \theta}+\frac{\partial \mathrm{t}_{\theta}(\widehat{\mathbf{p}})}{\partial \widehat{\mathbf{p}}} \cdot \frac{\partial \widehat{\mathbf{p}}}{\partial \theta}\),
+2. From \(f_{\theta}(\widehat{\mathbf{p}})=\tau\) and \(\widehat{\mathbf{p}}=\mathbf{r}_{0}+\hat{d}(\theta) \mathbf{w}\) \(\to\) implicit gradient \(\frac{\partial \widehat{\mathbf{p}}}{\partial \theta}=-\mathbf{w}\left(\frac{\partial f_{\theta}(\widehat{\mathbf{p}})}{\partial \widehat{\mathbf{p}}} \cdot \mathbf{w}\right)^{-1} \frac{\partial f_{\theta}(\widehat{\mathbf{p}})}{\partial \theta}\).
+
+
+\subsection*{Neural Radiance Field (NeRF)}
+\textbf{Motivation} Surfaces are good, but scenes are more complex.
+
+\textbf{Network} \(F_\theta(x,y, z, \theta, \phi) = (r,g,b, \sigma)\), \(\sigma\) output density.
+
+\((\theta, \phi)\) view direction, added at late stage of network, cuz most of the texture is not view dependent, othervise, will fall into trivial solution of sphere with complex texture. Density (geometry) is independent of viewing direction. Viewing direction only applied at a later layer, which limits the viewdependent effects and thus encourages detailed geometry.
+
+\textbf{Volume Rendering}
+% 
+\(\alpha=1-\mathrm{e}^{\left(-\sigma_{i} \delta_{i}\right)}, \delta_{i}=t_{i+1}-t_{i}\), Transmittance \(T_{i}=\prod_{j=1}^{i-1}\left(1-\alpha_{j}\right)\), color \(c=\sum_{i=1}^{N} {T_{i} \alpha_{i}} c_{i}\).
+
+\textbf{Train} \(\min _{\theta} \sum_{i}\left\|\operatorname{render}_{i}\left(F_{\theta}\right)-I_{i}\right\|^{2}\), sampling efficiency is a big issue.
+
+\textbf{trick: Positional encoding} pass low-dim \(x,y,z\) coordinates via fixed positional encoding controlled by \(L\) or random Fourier features of varying frequencies, instead of directly use \((x,y,z)\). 
+% 
+\(\mathsf{PE} = \text{cat}[\cos k\mathbf{v}, \sin k\mathbf{v}]_{k=1}^{2^L}\), 
+% 
+or \(\gamma(\mathbf{v})=[\cos (\mathbf{B v}), \sin (\mathbf{B v})] \quad \mathbf{B} \sim \mathcal{N}\left(0, \sigma^{2}\right)\), too big mapping bandwith  \(\sigma\) leads to noisy images (overfit).

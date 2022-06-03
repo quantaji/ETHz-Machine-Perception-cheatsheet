@@ -1,0 +1,5 @@
+\section{Backprop \& Training}
+\textbf{Cross-entropy}: \(H(p, q)=-\mathbb{E}_{p}[\log q]\).
+\textbf{MLE}: \(\hat{\theta} = \arg\max_\theta \sum_{i}\log p(x_i|\theta)\).
+\textbf{KL div}: \(\KL(p\|q)=\mathbb{E}_{p}\log(p/q)\).
+If \(p=\sum_i\delta_{x_i}\) empirical, \(H(p, q) = \mathrm{NLL}(q) = - \KL(p\|q) + H(p).\)

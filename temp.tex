@@ -1,0 +1,47 @@
+\documentclass[11pt,landscape,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage[T1]{fontenc}
+%\usepackage[LY1,T1]{fontenc}
+%\usepackage{frutigernext}
+%\usepackage[lf,minionint]{MinionPro}
+\usepackage{tikz}
+\usetikzlibrary{shapes,positioning,arrows,fit,calc,graphs,graphs.standard}
+\usepackage[nosf]{kpfonts}
+\usepackage[t1]{sourcesanspro}
+\usepackage{multicol}
+\usepackage{wrapfig}
+\usepackage[top=4mm,bottom=4mm,left=4mm,right=4mm]{geometry}
+\usepackage[framemethod=tikz]{mdframed}
+\usepackage{microtype}
+\usepackage{pdfpages}
+\usepackage[shortlabels]{enumitem}
+\usepackage{flushend}
+\usepackage{physics}
+\usepackage{listings}
+\usepackage{bbding}
+
+\raggedend 
+
+\newif\iflong
+\longtrue % \longfalse for short version and \longtrue for long version
+\newcommand{\inLongVersion}[1]{\iflong #1\fi}
+
+
+\setlist{nosep}
+\setlist[itemize]{leftmargin=*}
+\setlist[enumerate]{leftmargin=*}
+
+\input{mathdef.tex}
+
+\let\bar\overline
+
+\include{./def.tex}
+
+\begin{document}
+%\footnotesize
+\small
+
+    \input{intermediate.tex}
+
+\end{document}

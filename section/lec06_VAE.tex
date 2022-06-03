@@ -1,0 +1,53 @@
+\section{Variational Auto-Encoder}
+
+\textbf{Supervise} \(f\) maps data \(x\to\) label \(y\).
+\textbf{Unsuper} Data's underlying hidden structure: Clustering, feature learning, dim reduc, density estim.
+\textbf{Generative} learn \(p_{\text{M}}\) sim to \(p_{\mathcal{D}}\), then sample from\(p_{\text{M}}\). 
+
+\subsection*{Auto-Encoder (AE)}
+\textbf{Encoder} proj to latent space, \textbf{Decoder} proj back. \textbf{Loss} \(\text{Diff}(x_{\text{in}}, x_{\text{recon}})\). 
+PCA is Linear AE.
+
+\textbf{APP} (1) Denoise AE: randomly set pixels to 0 then recover. (2) Inpainting AE: cover part of image then recover. (3) 3D Human Motion: add noise to skeleton, recover with AE then pass to LSTM per frame.
+
+\textbf{Comment} Reconstruction \Checkmark, Generation \XSolidBrush. Latent space not well-structured: no continuity, no interpolation.
+
+\subsection*{Variational Auto-Encoder (VAE)}
+\begin{small}
+\(\ln p_{\theta}({x}) = \operatorname{ELBO}_{\theta, \phi}({x}) + \KL(q_{\phi}(z | {x}) \| p_{\theta}(z | {x}))\). \\
+Objective: \(\max_{\theta, \phi} \sum_i \operatorname{ELBO}_{\theta, \phi}({x_i})\).\\
+\( \operatorname{ELBO}= \mathbb{E}_{q_{\phi}}\ln p_{\theta}(x | z) - \KL (q_{\phi}(z | x)|| p_{\theta}(z))\)
+\end{small}
+
+
+\(\mathbb{E}_{q_{\phi}}[\log p_{\theta}(x | z)]\) recon-likelihood, encourage clustering for similar samples in latent space. \(-\KL(q_{\phi}(z | x)|| p_{\theta}(z))\) latent code loss, make posterior close to prior, encourage latent representations evenly around center.
+
+(1) If only recon: VAE\(\to\)AE, sharp recon but sparce latent space. (2) No recon loss: compact embedding like Gaussian, but bad for reconstruction.
+
+Encoder: \(q_{\phi}(z | x) = \mathcal{N}(\mu_{\mathsf{nn}}(x), \Sigma_{\mathsf{nn}}(x))\), \\
+Decoder: \(p_{\theta}(x | z) = \mathcal{N}(\mu_{\mathsf{nn}}(z), \Sigma_{\mathsf{nn}}(z))\).
+
+Approximate expectation in loss with sampling.\\
+Reparam trick: \(z \sim \mathcal{N}(\mu, \sigma^{2}) \Leftrightarrow \epsilon \sim \mathcal{N}(0,1), z=\mu+\sigma \epsilon, z=f(x, \epsilon, \theta)\) 
+
+% Example: MNIST, Facial expression.
+
+\subsection*{Disentangle respresentation}
+\textbf{semi-super}v-learn can lead to disentangle. \(p(x|y, z)\), \(y\) digits, \(z\) style. \\
+\textbf{UnSuper}vised disentangle, \(\beta\)-\textbf{VAE}: \\
+Assume \(p({x} | {z}) \approx p({x} | {v}, {w})\), \(v\) cond indep, \(w\) cond dep, \(\log p({v} | {x}) = \sum_{k} \log p(v_{k} | {x})\). Train: 
+\(\max _{\phi, \theta} \mathbb{E}_{x,q_{\phi}} \ln p_{\theta}(x | z)\), s.t. \(\KL(q_{\phi} \| p_{\theta}(z))\) \(<\delta\Leftrightarrow L_{\beta,\phi,\theta}=\mathsf{NLL}+\beta \KL\), \(\beta > 1\) stronger constraint on latent space than VAE.
+
+
+\subsection*{Integrals of Gaussian}
+\(p=\mathcal{N}(\mu, \Sigma),q=\mathcal{N}(m, L)\), (1) \(H_p = [D (\ln 2 \pi+1) + \ln |L|] /2\). 
+(2) \(H_{p, q} = -\int p \ln q d x = [D \ln 2 \pi + \ln |L|+ \operatorname{Tr}(L^{-1}\Sigma) + (\mu-m)^{\top}L^{-1}(\mu-m)] /2\).
+(3) If \(\Sigma = \text{diag}\{\sigma^2_i\},L = \text{diag}\{l^2_i\}\), \(H_{p, q} = (D\ln 2\pi + \sum_{i=1}^{D}\ln \l^2_j +  \sum_{i=1}^{D}(\sigma_i^2 + (\mu_i - m_i)^2) / l_i^2 )/2\).
+(4) \(\KL(p\|q) = [\ln |L|/|\Sigma|+ \operatorname{Tr}(L^{-1}\Sigma) - D + (\mu-m)^{\top}L^{-1}(\mu-m)] /2\).
+
+
+\subsection*{Hierarchical Latent Variable Models}
+Encoder \(q_{\phi}(z_{1:L}| x)= \prod_{i=1}^{L}q_{\phi}(z_{i} | x) \),
+Decoder  \(p_{\theta}(x|z) = p_{\theta}(x|z_1)\),
+Prior \(p_{\theta}(z_{1:L})=p_{\theta}(z_{L}) \prod_{i=1}^{L-1} p_{\theta}(z_{i} | z_{i+1})\),
+\(\mathcal{L}_{\theta, \phi}(x)=\mathbb{E}_{q_{\phi}}[\log p_{\theta}(x | z_{1})]-D_{K L}(q_{\phi}(z_{L} | x) \| p_{\theta}(z_{L}))-\sum_{i=1}^{L-1} \mathbb{E}_{z_{i+1} \sim q_{\phi}(z_{i+1} | x)} D_{K L}(q_{\phi}(z_{i} | x) \| p_{\theta}(z_{i} | z_{i+1}))\).

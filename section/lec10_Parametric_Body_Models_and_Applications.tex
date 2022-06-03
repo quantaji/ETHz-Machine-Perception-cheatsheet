@@ -1,0 +1,92 @@
+\section{Parametric Body Models}
+\textbf{Challenge} in/out-of-plane rotation, foreshortening, scaling, intra-category variation, aspect Ratio.
+
+\subsection*{2D Body Modeling}
+
+\textbf{Spring Models, Pictorial Structure Model}
+% 
+minimize deg of mismatch \(S(I, L)=\sum_{i \in V} \alpha_{i} \cdot \phi(I, l_{i})+\sum_{i j \in E} \beta_{i j} \cdot \psi(l_{i}, l_{j})\), \(\phi\) unary term, likelihood this patch of image for this part \(i\), \(\psi\) pairwise term btw part \((i,j)\) with spring model \(\beta\).
+
+\textbf{PSM with Flexible Mixtures} \(S(I, L, M)=\sum_{i \in V} \alpha_{i}^{m_{i}} \phi(I, l_{i})+\sum_{i j \in E} \beta_{i j}^{m_{i} m_{j}} \psi(l_{i}, l_{j})+S(M)\), \(m_i\) stands for mixture type \(m_i\), e.g. orientation. \(S(M)=\sum_{i j \in E} b_{i j}^{m_{i} m_{j}}\) co-occurrence bias, prior knowledge about mixture part co-occurrence likelihood.
+
+\subsection*{Feature Representation Learning}
+\textbf{Direct Regress} ConvNet output \((x,y)\) for certain body parts.
+
+\textbf{Heatmaps} ConvNet, each keypoint with separate binary heatmap. Keypoint positive, else negative. usually Gaussian blured around keypoint.
+
+\textbf{Conv Pose Machine} iteratively generate heatmaps, then with original img generate more accurate heatmap.
+
+\textbf{Think-slicing Networks} combine conv feature + body struct. Energy term for a seq of slice/frame + temporal displace for each part \(S_{\text {slice}} = \sum_{t=1}^{T} S(I^{t}, p^{t})+\sum_{(i, i^{*}) \in E_{f}} \psi_{i, i^{*}}(p_{i}, p_{i^{*}}^{\prime})\), \(\psi_{i, j}(p_{i}, p_{j})=w_{i, j} \cdot d(p_{i}-p_{j})\). \( d(p_{i}-p_{j})=[\Delta x, \Delta x^{2}, \Delta y, \Delta y^{2}]^{\top}\).
+
+\textbf{Inference} \(\operatorname{score}_{i}(p_{i}) = \phi_{i}(p_{i} | I)+\sum_{k \in \text{child}(i)} m_{k i}(p_{i})\), \(m_{k i}(p_{i}) = \max _{p_{k}}(\operatorname{score}_{k}(p_{k})+\psi_{k, i}(p_{k}, p_{i}))\) in a bottom up manner. Use subgradient for \(\max\) operator when training.
+
+
+\subsection*{3D human Pose and Shape: SMLP}
+% Usage for 3D: (1) infer peoples intention in sensitive places like stations, predict pedestrains motion in the self driving car (3) robots could help olderies once understand the action (4) recon skeleton in 3D for VR/AR gaming (5) analyze sports match
+\textbf{Representation} 3D mesh (\~ 7000 vertices and faces). Design mesh (by artist) to align unordered scans and incomplete 3D points from raw scan.
+
+\textbf{Challenge} Chicken-and-egg problem, solve model and registration jointly. 
+
+\textbf{Linear Blend Skinning (Naive)} \(\mathbf{t}_{i}^{\prime}=\sum_{k} w_{k i} \mathbf{G}_{k}(\boldsymbol{\theta}, \mathbf{J}) \mathbf{t}_{i}\)  \(\mathbf{t}, \mathbf{t}^{\prime}\) rest/trans vertices, \(w_{ki}\) blend skinning weights, \(G_k\) rigid bone transformation, \(\theta\) pose, \(J\) Joint locations. 
+
+\textbf{Result} creates artifact, cuz unified blending weights try to cover all kinds of trans.
+
+\textbf{SPML-LBS} 
+\textbf{idea}  pose/shape dependent rest pose.
+
+\(T_{P}(\vec{\beta}, \vec{\theta})=\overline{\mathbf{T}}+B_{S}(\vec{\beta})+B_{P}(\vec{\theta})\), \(\beta\) body shape param, 
+\textit{shape blend shape} \(B_{S}(\vec{\beta} ; \mathcal{S})=\sum_{n=1}^{|\vec{\beta}|} \beta_{n} \mathbf{S}_{n}\),
+\textit{pose blend shape} \(B_{P}(\vec{\theta} ; \mathcal{P})=\sum_{n=1}^{9 K}(R_{n}(\vec{\theta})-R_{n}(\vec{\theta}^{*})) \mathbf{P}_{n}\), \(\theta^*\) rest pose.
+
+Joint location dependency \(J(\vec{\beta} ; \mathcal{J}, \overline{\mathbf{T}}, \mathcal{S})=\mathcal{J}\times(\overline{\mathbf{T}}+B_{S}(\vec{\beta} ; \mathcal{S}))\), 
+\(\mathcal{J}\) regression matrix from rest verticese to rest joints, 
+
+Overall Mesh \(M(\vec{\beta}, \vec{\theta} ; \Phi)\): \(\overline{\mathbf{t}}_{i}^{\prime}=\sum_{k=1}^{K} w_{k, i} G_{k}^{\prime}(\vec{\theta}, J(\vec{\beta}))(\overline{\mathbf{t}}_{i}+\mathbf{b}_{S, i}(\vec{\beta})+\mathbf{b}_{P, i}(\vec{\theta}))\).
+
+\textbf{Model param} \(\Phi=\{\overline{\mathbf{T}}, \mathcal{W}, \mathcal{S}, \mathcal{J}, \mathcal{P}\}\).
+
+\textbf{Train} First \(\{\mathcal{J}, \mathcal{N}, \mathcal{P}\}\) with multi-pose dataset, then \(\{\overline{\mathbf{T}}, \mathcal{S}\}\) with multi-shape dataset, separate models for men and women.
+
+(1) Pose Parameter Training, linear comb of forllowing loss: 
+
+1. \(E_D\): \(L_2\) loss btw registerd and model vertices. 
+2. \(E_Y\): symmetry regularization on vertice and joints. 
+3. \(E_J\): \(J(\vec{\beta} ; \mathcal{J}, \overline{\mathbf{T}}, \mathcal{S})\) close to default \(J\). 
+4. \(E_{P}(\mathcal{P})=\|\mathcal{P}\|_{F}^{2}\) prevent overfitting of pose-dependent blend shape. 
+5. \(E_{W}(\mathcal{W})=\|\mathcal{W}-\mathcal{W}_{I}\|_{F}^{2}\) blend weights towards initial weights
+
+Non-negative least squares with additional term that encourages the weights to add to one works best for \(\mathcal{J}\).
+
+(2) Shape Parameter Training:
+
+1. estimate pose \(\theta\) from generic shape \({\arg \min}_{{\vec{\theta}}} \sum_{e}\|W_{e}(\hat{\mathbf{T}}_{\mu}^{P}+B_{P}(\vec{\theta} ; \mathcal{P}), \hat{\mathbf{J}}_{\mu}^{P}, \vec{\theta}, \mathcal{W})-\mathbf{V}_{j, e}^{S}\|^{2}\), 
+2. get shape-depend vertices \(\hat{\mathbf{T}}_{j}^{S}={\arg \min }_{\hat{\mathbf{T}}} \|W(\hat{\mathbf{T}}+B_{P}(\vec{\theta}_{j} ; \mathcal{P}), \mathcal{J} \hat{\mathbf{T}}, \vec{\theta}_{j}, \mathcal{W})-\mathbf{V}_{j}^{S}\|^{2}\).
+3. PCA on \(\{\hat{\mathbf{T}}_{j}^{S}\}_{j=1}^{S_{\text {subj }}}\) to obtain \(\{\overline{\mathbf{T}}, \mathcal{S}\}\)
+
+
+\textbf{DMPL: Dynamic SMPL} Additional term for velocity and acceloration.
+
+
+\subsection*{SMPL Estimation Methods}
+
+\textbf{Optimization Based Fitting} SMPLify: (1) Given image, pass to DNN to get \(\beta, \theta\), (2) from SMPL get joints, (3) \(\theta^{*}={\operatorname{argmin}}_{\theta} \| \text{Joint diff}\| + \text{Prior Reg}\)
+
+Cons: (1) Hand-crafted optimization routine. (2) Sensitive to initialization (3) Slow convergence.
+
+\textbf{Learned Gradient Descent (LGD)} \(\theta^{t+1}=\theta^{t}+F(\partial_{\theta} L_{\text {reproj}}, \theta^{t}, x)\), \(F\) is NN.
+
+Train: render with different views current pose \(\to\) learn how to optimize.
+
+\textbf{APP}:Football match pose estimation
+
+\subsection*{From key points to detailed 3D surface}
+
+Challenges: Self-occlusion, lack of depth info, articulated motion,  mon-rigid deformation (clothing)
+
+\textbf{Templated-based Capture}
+
+(1) capture body with template cloth model  (2) rack cloth model deformation with time. Cons: Laborious preprocessing, No public access to models \(\to\) Automatic and general pipeline required.
+
+\textbf{Regression-based Reconstruction} recover every pixel.
+
+\textbf{Templated-based + Regression-based}

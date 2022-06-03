@@ -1,0 +1,99 @@
+\section{Reinforcement Learning}
+MDP: \((\boldsymbol{S}, \mathcal{A}, \mathcal{R}, \mathbb{P}, \boldsymbol{\gamma})\), 
+% 
+reward \(r: \mathcal{S} \times \mathcal{A} \to \mathbb{R}\), 
+% 
+transition \(p: \mathcal{S} \times \mathcal{A} \to \mathcal{S}\), discount factor \(\gamma\), initial state \(s_0\).
+% 
+\(G_{t} := \sum_{k=0}^{\infty} \gamma^{k} R_{t+k+1}\), 
+% 
+value func \(V_{\pi}(s) := \mathbb{E}_{\pi}[G_{t} | S_{t}=s]\), 
+% 
+Q func \(Q(s, a) := \mathbb{E}_{\pi}[G_{t} | S_{t}=s, a_{t} = a]\).
+% 
+Bellman eq \(V_{\pi}(s)=E_{\pi}[R_{t+1}+\gamma V_{\pi}(s^{\prime}) | S_{t}=s]\),
+% 
+Bellman optim eq \(V_{*}(s)=\max _{a} Q_{*}(s, a)=\max _{a} \sum_{s^{\prime}, r} p(s^{\prime}, r | s, a)[r+\gamma V_{\pi}(s^{\prime})]\)
+
+\textbf{Dynamic Programming} Requires environment model (transition prob)
+
+\textbf{Monte-Carlo} No need env.
+
+\textbf{Temporal-Difference} DP + MC, no env.
+
+\subsection*{Dynamic Programming (DP)}
+\textbf{Value Iter} (1) compute \(V_*\) (2) get \(\pi_*\) by  \(V_*\).
+
+\textbf{Policy Iter} (1) compute \(V_\pi\) for \(\pi\) (2) update \(\nu_{\pi} \to \pi^{\prime}\)
+
+\textbf{Pros} (1) Exact, (2) convergence guaranteed in finite iter, (3) VI is more efficient than PI.
+\textbf{Cons} (1) need transition prob, (2) need to iterate over whole state space, (3) require memory \(\propto\) to state space.
+
+\subsection*{Monte-Carlo}
+\(V_\pi(s) \approx \frac{1}{N}\sum_i {G_i}\), need experience, no transition prob(dynamics), high variance.
+
+\subsection*{Temporal-Difference}
+
+\(\Delta V(s)=r(s, a)+\gamma V(s^{\prime})-V(s),\\ V(s) \to V(s)+\alpha \Delta V(s)\)
+
+\subsection*{Exploration v.s. Exploitation}
+\textbf{Random} Visit states close to starting point more often, Far away states get neglected.
+\textbf{Greedy} Can find reward quickly, Getting stuck in local minimum.
+
+\textbf{Trade-off} \(\varepsilon\)-greedy Policy
+
+\textbf{SARSA} on policy, computes the Q-Value according to a policy and then the agent follows that policy. 
+% 
+\(\Delta Q(s, a)=r(s, a)+\gamma Q(s^{\prime}, a^{\prime})-Q(s, a), Q(s, a) \to Q(s, a)+\alpha \Delta Q(s, a) \), can use  \(\varepsilon\)-greedy Policy here.
+
+\textbf{Q-Learning} Off-Policy, computes the Q-Value according to a greedy policy, but the agent follows a different exploration policy. 
+% 
+\(\Delta Q(s, a) = r(s, a)+\gamma \max _{a^{\prime}}\{Q(s^{\prime}, a^{\prime})\}-Q(s, a), Q(s, a) \to Q(s, a)+\alpha \Delta Q(s, a)\).\\
+% 
+\textbf{Comment} For continuous action space the problem is intractable.
+
+\textbf{Pros} 
+1. Less variance than Monte Carlo Sampling due to bootstrapping,
+2. More sample efficient than Dynamic Programming,
+3. Do not need to know the transition prob matrix.
+
+\textbf{Cons}
+1. Biased due to bootstrapping,
+2. Exploration/Exploitation dilemma.
+
+\subsection*{Deep RL \(V_{\pi}(s) \approx V_{\pi}(s, \theta)\)}
+
+\textbf{Deep Q-learning} SGD on \(\operatorname{L}(\theta)=(r+\gamma \max _{a^{\prime}} \{Q_{\theta}(s^{\prime}, a^{\prime})\}-Q_{\theta}(s, a))^{2}\), no grad in max. 
+% 
+\textbf{Prob} States visited in a trajectory are strongly correlated, \textbf{Sol} randomly generated sample transitions from replay buffer. 
+% 
+OK to use old samples, since Q-learning is off-policy.
+
+
+\subsection*{Policy Gradient}
+
+Policy: \(\pi(a_{t} | s_{t}, \theta )=N(\mu_{t}, \sigma_{t}^{2} | s_{t}, \theta)\). \(\theta\) params of NN.
+
+Trajectories: \(p(\tau) = p(s_{1}, a_{1}, \ldots, s_{T}, a_{T})= p(s_{1}) \prod_{t=1}^{T} \pi(a_{t} | s_{t}) p(s_{t+1} | a_{t}, s_{t})\)
+
+\textbf{Idea} Good trajectories made more likely. Bad trajectories made less likely.
+
+\textbf{Exploration}: collecting trajectory data. The agent samples action at every time-step from the policy probability distribution (on-policy methods). 
+
+Evaluation of policy: compute the expectation of the trajectory reward. \
+%
+\(J(\theta)=E_{\tau \sim p_{\theta}(\tau)}[\sum_{t} \gamma^{t} r(s_{t}, a_{t})]\), \(\theta=\theta+\nabla_{\theta} J(\theta)\),
+% 
+
+\(\nabla_{\theta} J(\theta) = \mathbb{E}_{\tau \sim p(\tau)}[\nabla_{\theta} \log p(\tau) r(\tau)] = \mathbb{E}_{\tau \sim p(\tau)}[(\sum_{t=0}^{T} \nabla_{\theta} \log \pi_{\theta}(a_{t}^{i} | s_{t}^{i})) \times (\sum_{t=0}^{T} \gamma^{t} r(s_{t}^{i}, a_{t}^{i}))]\).
+
+Hint: \(\nabla_\theta p(s_{t+1}|a_t, s_t) = 0\).
+
+\textbf{Problem} MC on gradient high variance. \textbf{Solution} add a baseline \(\nabla J(\theta)=\frac{1}{N} \sum_{i}(\sum_{t=0}^{T} \nabla_{\theta} \log \pi_{\theta}(a_{t}^{i} | s_{t}^{i})) \times (\sum_{t=0}^{T} \gamma^{t} r(s_{t}^{i}, a_{t}^{i})-b(s_{t}^{i}))\) Baseline: average reward, estimate of the \(V(s)\).
+
+\subsection*{Actor-critic}
+Bootstrapping in \(G_{\tau}\): \(r(s_{t}^{i}, a_{t}^{i})+\gamma V(s_{t+1}^{i})-V(s_{t}^{i})\), introduce bias and reduce the variance.
+
+\(\nabla_{\theta} J(\theta)=\frac{1}{N} \sum_{i} \sum_{t=0}^{T} \nabla_{\theta} \log \pi_{\theta}(a_{t}^{i} \mid s_{t}^{i}) \times (r(s_{t}^{i}, a_{t}^{i})+\gamma V(s_{t+1}^{i})-V(s_{t}^{i}))\).
+
+The policy (actor) and the value function (critic) are both represented by neural networks (SOTA).

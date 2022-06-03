@@ -1,0 +1,10 @@
+\section{Full CNN, upsampling}
+\textbf{Goal} Pixel predict, semantic seg.
+
+\textbf{Unpooling Methods}: Nearest Neighbor, Bed of Nail, Max Unpooling (need maxpool from prev net).
+
+\subsection*{ConvTranspose2D}
+\textbf{shape}: \(L_{\text{out}} = (L_{\text{in}} - 1)\text{Stride}_{=1} - 2  \text{Pad}_{=0} + \text{Dilat}_{=1}(\text{Ker} - 1) + \text{OutPad}_{=0} + 1\)
+
+\textbf{App} U-Net: combine global+local features using tensors from previous layer.
+
